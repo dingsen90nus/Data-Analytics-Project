@@ -1,0 +1,105 @@
+
+########################################
+library(readxl)
+library(data.table)
+library(xlsx)
+################F10N Vendor Data####################
+
+#Set working directory to the filter location
+
+setwd("//na.micron.com/root/Common/IMFS/Temp/MSP/MSP Inventory Assessment Automate/Vendor Data/Fab10(IMFS)")
+
+#Loop Throught the files and save into a list
+
+file.list <- list.files(path = "//na.micron.com/root/Common/IMFS/Temp/MSP/MSP Inventory Assessment Automate/Vendor Data/Fab10(IMFS)", pattern='*.xls')
+
+#Skip first 4 rows
+df.list <- lapply(file.list, read_excel, skip = 4)
+
+#Use for loop to clean up 
+
+for (i in 1: length(df.list)){
+  data <- df.list[[i]]
+  data <- subset(data, get('Supplier Name') != '')
+  df.list[[i]] <- data
+}
+
+# Use rbind to bind all list elements to a data frame
+df <- rbindlist(df.list, idcol = "id" , fill = TRUE)
+
+#output
+F10N_Vendor_data <- subset(df, select = c("id", "Supplier Name", "Vendor Code", "Micron Part Number", "Material Description", "Category", "Stock take date / ETA", "Batch Number", 
+                             "Batch Expiry Date", "UOM", "Quantity", "MOI", "Next 3M Forecast Average", "Total lead time (days)", "PO No", "Remarks", "Days to expiry"
+))
+
+
+################F10W Vendor Data####################
+
+#Set working directory to the filter location
+
+setwd("//na.micron.com/root/Common/IMFS/Temp/MSP/MSP Inventory Assessment Automate/Vendor Data/Fab7(TECH)")
+
+#Loop Throught the files and save into a list
+
+file.list <- list.files(path = "//na.micron.com/root/Common/IMFS/Temp/MSP/MSP Inventory Assessment Automate/Vendor Data/Fab7(TECH)", pattern='*.xls')
+
+#Skip first 4 rows
+df.list <- lapply(file.list, read_excel, skip = 4)
+
+#Use for loop to clean up 
+
+for (i in 1: length(df.list)){
+  data <- df.list[[i]]
+  data <- subset(data, get('Supplier Name') != '')
+  df.list[[i]] <- data
+}
+
+# Use rbind to bind all list elements to a data frame
+df <- rbindlist(df.list, idcol = "id" , fill = TRUE)
+
+#output
+F10W_Vendor_data <- subset(df, select = c("id", "Supplier Name", "Vendor Code", "Micron Part Number", "Material Description", "Category", "Stock take date / ETA", "Batch Number", 
+                             "Batch Expiry Date", "UOM", "Quantity", "MOI", "Next 3M Forecast Average", "Total lead time (days)", "PO No", "Remarks", "Days to expiry"
+))
+
+
+
+
+
+
+
+#########################
+library(sqldf)
+
+
+###### delete all NA entries for Quantity and Total_lead_time_in_days from Vendor File####
+
+F10N_Vendor_data<- sqldf("SELECT * FROM F10N_Vendor_data WHERE F10N_Vendor_data.[Quantity] IS NOT NULL" )
+F10N_Vendor_data<- sqldf("SELECT * FROM F10N_Vendor_data WHERE F10N_Vendor_data.[Stock take date / ETA] IS NOT NULL")
+F10N_Vendor_data<- sqldf("SELECT * FROM F10N_Vendor_data WHERE F10N_Vendor_data.[Batch Number] IS NOT NULL")
+F10N_Vendor_data<- sqldf("SELECT * FROM F10N_Vendor_data WHERE F10N_Vendor_data.[Batch Expiry Date] IS NOT NULL")
+
+F10W_Vendor_data<- sqldf("SELECT * FROM F10W_Vendor_data WHERE F10W_Vendor_data.[Quantity] IS NOT NULL" )
+F10W_Vendor_data<- sqldf("SELECT * FROM F10W_Vendor_data WHERE F10W_Vendor_data.[Stock take date / ETA] IS NOT NULL")
+F10W_Vendor_data<- sqldf("SELECT * FROM F10W_Vendor_data WHERE F10W_Vendor_data.[Batch Number] IS NOT NULL")
+F10W_Vendor_data<- sqldf("SELECT * FROM F10W_Vendor_data WHERE F10W_Vendor_data.[Batch Expiry Date] IS NOT NULL")
+
+
+
+### Extract All Part_Number from Vendor File####
+
+Material<- sqldf("SELECT DISTINCT F10N_Vendor_data.[Micron Part Number] FROM F10N_Vendor_data ORDER BY [Micron Part Number]" )   
+write.xlsx(Material, "//na.micron.com/root/Common/IMFS/Temp/MSP/MSP Inventory Assessment Automate/Update 08.08.2017/Part_Type_List_10N.xls" , row.names= FALSE)
+
+
+
+##############  Export Data ##############
+
+setwd("//na.micron.com/root/Common/IMFS/Temp/MSP/MSP Inventory Assessment Automate/Update 08.08.2017")
+
+A<-"H://IMFS/Temp/MSP/MSP Inventory Assessment Automate/Update 08.08.2017/F10N_Vendor_data.xls"
+write.xlsx(F10N_Vendor_data, A, row.names= FALSE)
+
+B<-"H://IMFS/Temp/MSP/MSP Inventory Assessment Automate/Update 08.08.2017/F10W_Vendor_data.xls"
+write.xlsx(F10W_Vendor_data, B, row.names= FALSE)
+
